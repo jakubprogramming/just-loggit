@@ -36,8 +36,10 @@ const prodLogFormat = combine(
   format.metadata()
 );
 
+const myFormat = process.env.NODE_ENV === "development" ? devLogFormat : prodLogFormat;
+
 const myTransports = [
-  new transports.Console(),
+  new transports.Console({format: combine(colorize(), myFormat)}),
   new transports.File({ filename: `${process.env.DIRECTORY_LOGFILES}/error.log`, level: 'error' }),
   new transports.File({ filename: `${process.env.DIRECTORY_LOGFILES}/combined.log` })
 ];
@@ -55,7 +57,7 @@ if(process.env.LOGGING_TO_DB_ENABLED === "true"){
 
 const logger = createLogger({
   level: process.env.LOGGER_LEVEL,
-  format: process.env.NODE_ENV === "development" ? devLogFormat : prodLogFormat,
+  format: myFormat,
   defaultMeta: { NODE_ENV: process.env.NODE_ENV },
   transports: myTransports
 });
