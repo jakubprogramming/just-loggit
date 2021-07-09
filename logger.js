@@ -5,12 +5,12 @@ const winston = require('winston');
 const {format, createLogger, transports} = winston;
 const {timestamp, combine, printf, colorize, errors} = format;
 
-const uri = `mongodb://${process.env.MONGO_DB_USER}:${process.env.MONGO_DB_PW}@${process.env.MONGO_DB_URL}/${process.env.LOGGING_ERROR_DB}`;
+const uri = `mongodb://${process.env.LOGGING_MONGO_DB_USER}:${process.env.LOGGING_MONGO_DB_PW}@${process.env.LOGGING_MONGO_DB_URL}/${process.env.LOGGING_MONGO_ERROR_DB}`;
 
 const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   ssl: true,
-  replicaSet: process.env.MONGO_DB_REPLICA_SET,
+  replicaSet: process.env.LOGGING_MONGO_DB_REPLICA_SET,
   authSource: 'admin',
   retryWrites: true
 });
@@ -46,7 +46,7 @@ if(process.env.LOGGING_TO_DB_ENABLED === "true"){
   myTransports.push(winston.add(new winston.transports.MongoDB({
       level: 'error',
       db: client,
-      collection: process.env.LOGGING_ERROR_COLLECTION,
+      collection: process.env.LOGGING_MONGO_ERROR_COLLECTION,
       storeHost: true,
       leaveConnectionOpen: true,
       decolorize: true,
