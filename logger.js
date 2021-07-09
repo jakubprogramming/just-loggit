@@ -1,47 +1,55 @@
 require('dotenv').config();
-require('winston-mongodb');
-const MongoClient = require('mongodb').MongoClient;
 const winston = require('winston');
 const {format, createLogger, transports} = winston;
 const {timestamp, combine, printf, colorize, errors} = format;
 
-const uri = `mongodb://${process.env.LOGGING_MONGO_DB_USER}:${process.env.LOGGING_MONGO_DB_PW}@${process.env.LOGGING_MONGO_DB_URL}/${process.env.LOGGING_MONGO_ERROR_DB}`;
+if(process.env.LOGGING_TO_DB_ENABLED === "true"){
 
-const client = new MongoClient(uri, {
-  useUnifiedTopology: true,
-  ssl: true,
-  replicaSet: process.env.LOGGING_MONGO_DB_REPLICA_SET,
-  authSource: 'admin',
-  retryWrites: true
-});
-const connection = client.connect();
+  if(!process.env.LOGGING_MONGO_DB_USER ||
+     !process.env.LOGGING_MONGO_DB_PW ||
+     !process.env.LOGGING_MONGO_DB_URL ||
+     !process.env.LOGGING_MONGO_DB_REPLICA_SET ||
+     !process.env.LOGGING_MONGO_ERROR_DB ||
+     !process.env.LOGGING_MONGO_ERROR_COLLECTION
+   ) throw("Incomplete MongoDB environment variables. Please check your .env file");
 
+  require('winston-mongodb');
+  var MongoClient = require('mongodb').MongoClient;
+  var uri = `mongodb://${process.env.LOGGING_MONGO_DB_USER}:${process.env.LOGGING_MONGO_DB_PW}@${process.env.LOGGING_MONGO_DB_URL}/${process.env.LOGGING_MONGO_ERROR_DB}`;
+  var client = new MongoClient(uri, {
+    useUnifiedTopology: true,
+    ssl: true,
+    replicaSet: process.env.LOGGING_MONGO_DB_REPLICA_SET,
+    authSource: 'admin',
+    retryWrites: true
+  });
+  var connection = client.connect();
+}
 
-const logFormat = printf(({ level, message, timestamp, stack }) => {
+const logPrintf = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} ${level}: ${stack || message}`;
 });
 
 const devLogFormat = combine(
-  colorize(),
   timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
   errors({stack: true}),
-  logFormat,
+  logPrintf,
   format.metadata()
 );
 
 const prodLogFormat = combine(
   timestamp({format: 'YYYY-MM-DD HH:mm:ss ZZ'}),
   errors({stack: true}),
-  logFormat,
+  logPrintf,
   format.metadata()
 );
 
-const myFormat = process.env.NODE_ENV === "development" ? devLogFormat : prodLogFormat;
+const appliedFormat = process.env.NODE_ENV === "development" ? devLogFormat : prodLogFormat;
 
 const myTransports = [
-  new transports.Console({format: combine(colorize(), myFormat)}),
-  new transports.File({ filename: `${process.env.DIRECTORY_LOGFILES}/error.log`, level: 'error' }),
-  new transports.File({ filename: `${process.env.DIRECTORY_LOGFILES}/combined.log` })
+  new transports.Console({format: combine(colorize(), appliedFormat)}),
+  new transports.File({ filename: `${process.env.DIRECTORY_LOGFILES || './logs'}/error.log`, level: 'error' }),
+  new transports.File({ filename: `${process.env.DIRECTORY_LOGFILES || './logs'}/combined.log` })
 ];
 
 if(process.env.LOGGING_TO_DB_ENABLED === "true"){
@@ -56,11 +64,22 @@ if(process.env.LOGGING_TO_DB_ENABLED === "true"){
 }
 
 const logger = createLogger({
-  level: process.env.LOGGER_LEVEL,
-  format: myFormat,
+  level: process.env.LOGGER_LEVEL || "debug",
+  format: appliedFormat,
   defaultMeta: { NODE_ENV: process.env.NODE_ENV },
   transports: myTransports
 });
+
+//Wrapper is used to be able to provide multiple arguments to logging functions
+const wrapper = ( original ) => {
+    return (...args) => original(args.join(" "));
+};
+logger.error = wrapper(logger.error);
+logger.warn = wrapper(logger.warn);
+logger.info = wrapper(logger.info);
+logger.verbose = wrapper(logger.verbose);
+logger.debug = wrapper(logger.debug);
+logger.silly = wrapper(logger.silly);
 
 
 module.exports = logger;
