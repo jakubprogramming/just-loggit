@@ -72,8 +72,18 @@ const logger = createLogger({
 
 //Wrapper is used to be able to provide multiple arguments to logging functions
 const wrapper = ( original ) => {
-    return (...args) => original(args.join(" "));
+    return (...args) => {
+      return original(
+        args.reduce((a, b) => {
+
+          if(typeof a === "object") a = JSON.stringify(a, null, 2);
+          if(typeof b === "object") b = JSON.stringify(b, null, 2);
+
+          return a + " " + b;
+        }));
+    }
 };
+
 logger.error = wrapper(logger.error);
 logger.warn = wrapper(logger.warn);
 logger.info = wrapper(logger.info);
