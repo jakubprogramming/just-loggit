@@ -2,6 +2,7 @@ const logger = require('./logger');
 
 logger.info("text info", {meta1: 'meta1'});
 logger.info("text info", {test1: 'test1'}, {test2: 'test2'}, "finalstring");
+logger.error("text error", {test1: 'test1'}, {test2: 'test2'}, "finalstring");
 logger.info("text info", "second part of info");
 logger.info("text info --> null", null);
 logger.warn("text warn");
