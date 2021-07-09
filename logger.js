@@ -70,9 +70,16 @@ const logger = createLogger({
   transports: myTransports
 });
 
-//Wrapper is used to be able to provide multiple arguments to logging functions
+
 const wrapper = ( original ) => {
     return (...args) => {
+
+      if(args.length === 1){
+        return original(
+          typeof args[0] === "object" ? JSON.stringify(args[0], null, 2) : args[0]
+        )
+      }
+
       return original(
         args.reduce((a, b) => {
 
