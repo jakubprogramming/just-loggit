@@ -1,0 +1,33 @@
+{
+  "name": "just-loggit",
+  "version": "0.0.1",
+  "description": "A basic logger for logging to the console, files and mongodb",
+  "main": "logger.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "logger.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jakubprogramming/just-loggit.git"
+  },
+  "keywords": [
+    "winston",
+    "mongodb",
+    "logging"
+  ],
+  "author": "Jakub Müller",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jakubprogramming/just-loggit.git/issues"
+  },
+  "homepage": "https://github.com/jakubprogramming/just-loggit.git#readme",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "mongodb": "^3.6.10",
+    "winston": "^3.3.3",
+    "winston-mongodb": "^5.0.7"
+  }
+}
