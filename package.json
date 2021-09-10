@@ -1,6 +1,6 @@
 {
   "name": "just-loggit",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A basic logger for logging to the console, files and mongodb",
   "main": "logger.js",
   "scripts": {
