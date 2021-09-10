@@ -25,21 +25,27 @@ if (process.env.LOGGING_TO_DB_ENABLED === 'true') {
   const connection = client.connect()
 }
 
-const logPrintf = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} ${level}: ${stack || message}`
+// const logPrintf = printf(({ level, message, timestamp, stack }) => {
+//   return `${timestamp} ${level}: ${stack || message}`
+// })
+
+const logPrintf = format.printf((info) => {
+  const log = `${info.level}: ${info.message}`
+
+  return info.stack
+    ? `${log}\n${info.stack}`
+    : log
 })
 
 const devLogFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   errors({ stack: true }),
-  logPrintf,
   format.metadata()
 )
 
 const prodLogFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss ZZ' }),
   errors({ stack: true }),
-  logPrintf,
   format.metadata()
 )
 
@@ -64,23 +70,32 @@ if (process.env.LOGGING_TO_DB_ENABLED === 'true') {
 
 const logger = createLogger({
   level: process.env.LOGGER_LEVEL || 'debug',
-  format: appliedFormat,
+  format: format.combine(
+    colorize(),
+    format.errors({ stack: true }),
+    logPrintf,
+    appliedFormat
+  ),
   defaultMeta: { NODE_ENV: process.env.NODE_ENV },
   transports: myTransports
 })
+
+function isError (input) {
+  return input && input.stack && input.message // it's an error, probably
+}
 
 const wrapper = (original) => {
   return (...args) => {
     if (args.length === 1) {
       return original(
-        typeof args[0] === 'object' ? JSON.stringify(args[0], null, 2) : args[0]
+        typeof args[0] === 'object' && !isError(args[0]) ? JSON.stringify(args[0], null, 2) : args[0]
       )
     }
 
     return original(
       args.reduce((a, b) => {
-        if (typeof a === 'object') a = JSON.stringify(a, null, 2)
-        if (typeof b === 'object') b = JSON.stringify(b, null, 2)
+        if (typeof a === 'object' && !isError(a)) a = JSON.stringify(a, null, 2)
+        if (typeof b === 'object' && !isError(b)) b = JSON.stringify(b, null, 2)
 
         return a + ' ' + b
       }))
