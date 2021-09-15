@@ -1,4 +1,5 @@
 require('dotenv').config()
+const moment = require('moment')
 const winston = require('winston')
 const { format, createLogger, transports } = winston
 const { timestamp, combine, printf, colorize, errors } = format
@@ -30,7 +31,8 @@ if (process.env.LOGGING_TO_DB_ENABLED === 'true') {
 // })
 
 const logPrintf = format.printf((info) => {
-  const log = `${info.level}: ${info.message}`
+  const timestamp = moment().toString()
+  const log = `${timestamp} ${info.level}: ${info.message}`
 
   return info.stack
     ? `${log}\n${info.stack}`
@@ -40,13 +42,15 @@ const logPrintf = format.printf((info) => {
 const devLogFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   errors({ stack: true }),
-  format.metadata()
+  format.metadata(),
+  logPrintf
 )
 
 const prodLogFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss ZZ' }),
   errors({ stack: true }),
-  format.metadata()
+  format.metadata(),
+  logPrintf
 )
 
 const appliedFormat = process.env.NODE_ENV === 'development' ? devLogFormat : prodLogFormat
@@ -70,12 +74,7 @@ if (process.env.LOGGING_TO_DB_ENABLED === 'true') {
 
 const logger = createLogger({
   level: process.env.LOGGER_LEVEL || 'debug',
-  format: format.combine(
-    colorize(),
-    format.errors({ stack: true }),
-    logPrintf,
-    appliedFormat
-  ),
+  format: appliedFormat,
   defaultMeta: { NODE_ENV: process.env.NODE_ENV },
   transports: myTransports
 })
